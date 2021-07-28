@@ -1,19 +1,13 @@
-# This file represents an instance of a given quiz.
+# This file represents the quiz settings for ALL quizzes.
 import os
-
-import discord
 from discord.ext.commands import bot
 from discord.ext import commands
-from discord import Embed
 import sqlite3
-from quizquestions import KanjiQuestion
 
 
 # Important note: Any updates to the database require the binding variable to be a tuple. Even if you're only adding one
 # thing, you must surround the statement with parenthesis and add a comma after the variable.
 # Example: val = (",".join(args),)
-
-
 class QuizSettings(commands.Cog):
     def __init__(self, client):
         self.client = client
@@ -36,13 +30,14 @@ class QuizSettings(commands.Cog):
                     acc_flag INTEGER,
                     end_kanji_flag INTEGER,
                     time_elapsed_flag INTEGER,
-                    strike_limit INTEGER
+                    strike_limit INTEGER,
+                    compound_range TEXT
                     )
                 ''')
                 # Insert generic quiz settings if none exist.
-                cursor.execute(  # TODO: maybe use updateSetting
-                    f"INSERT INTO quiz_settings(level, time_limit, acc_flag, end_kanji_flag, time_elapsed_flag, strike_limit)"
-                    f"VALUES (5, 15, 1, 1, 1, 3)")
+                cursor.execute(
+                    f"INSERT INTO quiz_settings(level, time_limit, acc_flag, end_kanji_flag, time_elapsed_flag, strike_limit, compound_range)"
+                    f"VALUES (5, 15, 1, 1, 1, 3, '1,500')")
                 db.commit()
                 cursor.close()
                 db.close()
@@ -56,21 +51,23 @@ class QuizSettings(commands.Cog):
         db = sqlite3.connect('quiz_settings.sqlite')
         cursor = db.cursor()
         await ctx.send(":tools: Quiz Settings: :tools:\n"
-                       "1. Change levels: JLPT level(s) **{}** (.setlevel)\n"
-                       "2. Change time limit (in sec) per question: **{}** (.settime)\n"
-                       "3. Toggle show accuracy at the end of a quiz: **{}** (.toggleacc)\n"
-                       "4. Toggle show kanji at the end of a quiz: **{}** (.togglekanji)\n"
-                       "5. Toggle show total elapsed time at the end of a quiz: **{}** (.toggletime)\n"
-                       "6. Change the total strike allowed for a quiz: **{}** (.setstrike)"
+                       "Change levels: JLPT level(s) **{}** (.setkqlevel)\n"
+                       "Change time limit (in sec) per question: **{}** (.settime)\n"
+                       "Toggle show accuracy at the end of a quiz: **{}** (.toggleacc)\n"
+                       "Toggle show kanji at the end of a quiz: **{}** (.togglekanji)\n"
+                       "Toggle show total elapsed time at the end of a quiz: **{}** (.toggletime)\n"
+                       "Change the total strike allowed for a quiz: **{}** (.setstrike)\n"
+                       "Change range: **{}** (.setcqlevel)"
                        .format(cursor.execute("SELECT level FROM quiz_settings").fetchone()[0],
                                cursor.execute("SELECT time_limit FROM quiz_settings").fetchone()[0],
                                cursor.execute("SELECT acc_flag FROM quiz_settings").fetchone()[0],
                                cursor.execute("SELECT end_kanji_flag FROM quiz_settings").fetchone()[0],
                                cursor.execute("SELECT time_elapsed_flag FROM quiz_settings").fetchone()[0],
-                               cursor.execute("SELECT strike_limit FROM quiz_settings").fetchone()[0]))
+                               cursor.execute("SELECT strike_limit FROM quiz_settings").fetchone()[0],
+                               cursor.execute("SELECT compound_range FROM quiz_settings").fetchone()[0]))
 
-    @commands.command(name='setlevel', help='Change which Kanji show up on the kanji quiz')
-    async def set_level(self, ctx, *args):
+    @commands.command(name='setkqlevel', help='Change which Kanji show up on the kanji quiz')
+    async def set_kq_level(self, ctx, *args):
         possible_levels = ["0", "1", "2", "3", "4", "5"]
         if len(args) > 0 and (len(set(args)) == len(args)):
             for i in args:
@@ -78,15 +75,15 @@ class QuizSettings(commands.Cog):
                     await ctx.send(
                         "This command allows a user to change the amount of kanji (based on the JLPT) that show"
                         "up on the kanji quiz.\n\n"
-                        "**.setlevel 5**: Kanji quizzes will only show kanji from JLPT N5\n\n"
-                        "**.setlevel 4**: Kanji quizzes will only show kanji from JLPT N4\n\n"
-                        "**.setlevel 3**: Kanji quizzes will only show kanji from JLPT N3\n\n"
-                        "**.setlevel 2**: Kanji quizzes will only show kanji from JLPT N2\n\n"
-                        "**.setlevel 1**: Kanji quizzes will only show kanji from JLPT N1\n\n"
-                        "**.setlevel 0**: Kanji quizzes will only show kanji not on the JLPT\n\n"
+                        "**.setkqlevel 5**: Kanji quizzes will only show kanji from JLPT N5\n\n"
+                        "**.setkqlevel 4**: Kanji quizzes will only show kanji from JLPT N4\n\n"
+                        "**.setkqlevel 3**: Kanji quizzes will only show kanji from JLPT N3\n\n"
+                        "**.setkqlevel 2**: Kanji quizzes will only show kanji from JLPT N2\n\n"
+                        "**.setkqlevel 1**: Kanji quizzes will only show kanji from JLPT N1\n\n"
+                        "**.setkqlevel 0**: Kanji quizzes will only show kanji not on the JLPT\n\n"
                         "A user can also append more arguments to their command to include kanji from more than"
                         "one level.\n"
-                        "Example: **setlevel 5 3**: Kanji quizzes will show kanji from ONLY JLPT N5 and N3")
+                        "Example: **.setkqlevel 5 3**: Kanji quizzes will show kanji from ONLY JLPT N5 and N3")
                     break
             # Update database with the given arguments.
             sql = "UPDATE quiz_settings SET level = ?"
@@ -98,15 +95,44 @@ class QuizSettings(commands.Cog):
             await ctx.send(
                 "This command allows a user to change the amount of kanji (based on the JLPT) that show"
                 "up on the kanji quiz.\n\n"
-                "**.setlevel 5**: Kanji quizzes will only show kanji from JLPT N5\n\n"
-                "**.setlevel 4**: Kanji quizzes will only show kanji from JLPT N4\n\n"
-                "**.setlevel 3**: Kanji quizzes will only show kanji from JLPT N3\n\n"
-                "**.setlevel 2**: Kanji quizzes will only show kanji from JLPT N2\n\n"
-                "**.setlevel 1**: Kanji quizzes will only show kanji from JLPT N1\n\n"
-                "**.setlevel 0**: Kanji quizzes will only show kanji not on the JLPT\n\n"
+                "**.setkqlevel 5**: Kanji quizzes will only show kanji from JLPT N5\n\n"
+                "**.setkqlevel 4**: Kanji quizzes will only show kanji from JLPT N4\n\n"
+                "**.setkqlevel 3**: Kanji quizzes will only show kanji from JLPT N3\n\n"
+                "**.setkqlevel 2**: Kanji quizzes will only show kanji from JLPT N2\n\n"
+                "**.setkqlevel 1**: Kanji quizzes will only show kanji from JLPT N1\n\n"
+                "**.setkqlevel 0**: Kanji quizzes will only show kanji not on the JLPT\n\n"
                 "A user can also append more arguments to their command to include kanji from more than"
                 "one level.\n"
-                "Example: **setlevel 5 3**: Kanji quizzes will show kanji from ONLY JLPT N5 and N3")
+                "Example: **.setkqlevel 5 3**: Kanji quizzes will show kanji from ONLY JLPT N5 and N3")
+
+    @commands.command(name='setcqlevel', help='Change the range of which words show up on the compound quiz')
+    async def set_cq_level(self, ctx, *args):
+        db = sqlite3.connect('kanji.sqlite')
+        cursor = db.cursor()
+        max_freq = cursor.execute("SELECT Frequency FROM compounds LIMIT 1").fetchone()[0]
+        if len(args) > 0 and all(x.isnumeric() for x in args):
+            if (len(args) == 2 and int(args[0]) <= int(args[1])) or (len(args) == 1 and int(args[0]) <= max_freq):
+                # Query
+                sql = "UPDATE quiz_settings SET compound_range = ?"
+                if len(args) == 2: # Arg is a 2 side range
+                    val = (",".join(args),)
+                else: # Arg is a one side range.
+                    val = (("1," + args[0]),)
+                update_setting(sql, val)
+
+            else:
+                await ctx.send(
+                    "This command allows a user to change the range of which words show up on the compound quiz. "
+                    "The lower the range, the higher the frequency. (Min = 1, Max = {})\n\n"
+                    "**.setcqlevel 5000**: Compound quizzes will show the most common 5000 words\n\n"
+                    "**.setcqlevel 5000 5050**: Compound quizzes will show the 5000th most "
+                    "common word to the 5050th (first arg must be less than second).".format(max_freq))
+        else:
+            await ctx.send("This command allows a user to change the range of which words show up on the compound "
+                           "quiz. The lower the range, the higher the frequency. (Min = 1, Max = {})\n\n"
+                           "**.setcqlevel 5000**: Compound quizzes will show the most common 5000 words\n\n"
+                           "**.setcqlevel 5000 5050**: Compound quizzes will show the 5000th most "
+                           "common word to the 5050th (first arg must be less than second).".format(max_freq))
 
     @commands.command(name='settime', help='Change time limit (in sec) per quiz question')
     async def set_time(self, ctx, arg):
@@ -122,14 +148,14 @@ class QuizSettings(commands.Cog):
 
     @commands.command(name='setstrike', help='Set how may strikes are allowed for a quiz.')
     async def set_strike(self, ctx, arg):
-        if 5 >= int(arg) >= 0:
+        if 5 >= int(arg) > 0:
             sql = "UPDATE quiz_settings SET strike_limit = ?"
             val = (arg,)
             update_setting(sql, val)
             await ctx.send("Strike limit changed.", delete_after=5)
         else:  # Invalid Argument
             await ctx.send("This command allows a user to change the amount of strikes they can accumulate during a "
-                           "quiz. When the strike limit is reached, the quiz ends. (max strikes = 5, min = 0)\n\n"
+                           "quiz. When the strike limit is reached, the quiz ends. (max strikes = 5, min = 1)\n\n"
                            "Example: **.setstrike 5**: User is allowed to get 5 questions wrong before the quiz ends.")
 
     @commands.command(name='toggleacc', help='Toggle show accuracy at the end of a quiz')
@@ -195,7 +221,7 @@ class QuizSettings(commands.Cog):
     @set_strike.error
     async def set_strike_error(self, ctx, error):
         await ctx.send("This command allows a user to change the amount of strikes they can accumulate during a "
-                       "quiz. When the strike limit is reached, the quiz ends. (max strikes = 5, min = 0)\n\n"
+                       "quiz. When the strike limit is reached, the quiz ends. (max strikes = 5, min = 1)\n\n"
                        "Example: **.setstrike 5**: User is allowed to get 5 questions wrong before the quiz ends.")
 
     @toggle_accuracy.error
@@ -205,8 +231,8 @@ class QuizSettings(commands.Cog):
                        "**.toggleacc 1**: Shows accuracy at the end.\n\n"
                        "**.toggleacc 0**: Does not show accuracy at the end.")
 
-    @set_level.error
-    async def set_level_error(self, ctx, error):
+    @set_kq_level.error
+    async def set_kq_level_error(self, ctx, error):
         await ctx.send("This command allows a user to change the amount of kanji (based on the JLPT) that show"
                        "up on the kanji quiz given quiz.\n\n"
                        "**.setlevel 5**: Kanji quizzes will only show kanji from JLPT N5\n\n"
