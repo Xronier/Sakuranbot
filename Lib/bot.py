@@ -1,9 +1,7 @@
 import os
 import random
 
-import sqlite3
 
-from discord.ext.commands import bot
 from dotenv import load_dotenv
 from discord.ext import commands
 

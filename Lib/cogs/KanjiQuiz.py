@@ -4,6 +4,7 @@ import time
 import sqlite3
 from quizquestions import KanjiQuestion
 
+
 class KanjiQuiz(commands.Cog):
     def __init__(self, client):
         self.client = client
@@ -92,6 +93,7 @@ def query_settings(sql):
     cursor.close()
     db.close()
     return result
+
 
 # Countdown
 async def countdown(ctx, sec):
