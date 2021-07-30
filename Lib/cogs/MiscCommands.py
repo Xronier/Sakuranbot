@@ -16,7 +16,6 @@ class MiscCommands(commands.Cog):
 
         sponge_submissions = await reddit.subreddit('BikiniBottomTwitter')
         sub = random.choice([meme async for meme in sponge_submissions.top(time_filter="month", limit=50)])
-        print(sub.permalink)
         embed = discord.Embed(title="{}".format(sub.title), description="Author: u/{}".format(sub.author.name),
                               color=discord.Color.gold(), url="https://reddit.com{}".format(sub.permalink))
         embed = embed.set_image(url=sub.url)
